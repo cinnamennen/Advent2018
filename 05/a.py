@@ -1,6 +1,3 @@
-from string import ascii_uppercase
-
-
 def process(polymer: str) -> str:
     built_up = []
     sequences = list(polymer)
