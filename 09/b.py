@@ -54,6 +54,6 @@ def play_game(players, end):
     return max(scores.values())
 
 
-data = [play_game(p, e) for (p, e) in data]
+data = [play_game(p, e*100) for (p, e) in data]
 
 pp.pprint(data)
