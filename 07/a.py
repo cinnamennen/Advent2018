@@ -1,7 +1,7 @@
 import pprint
 import re
 from collections import Counter
-from functools import reduce
+from functools import reduce3
 
 pp = pprint.PrettyPrinter(indent=4)
 
