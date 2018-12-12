@@ -16,10 +16,10 @@ class memoized(object):
         self.cache = {}
 
     def __call__(self, *args):
-        if not isinstance(args, Hashable):
-            # uncacheable. a list, for instance.
-            # better to not cache than blow up.
-            return self.func(*args)
+        # if not isinstance(args, Hashable):
+        #     # uncacheable. a list, for instance.
+        #     # better to not cache than blow up.
+        #     return self.func(*args)
         if args in self.cache:
             return self.cache[args]
         else:
@@ -61,12 +61,24 @@ def next_state(s: str) -> (str, int):
 
     return last_state, (removed - 3)
 
+@memoized
+def get_value(s, z):
+    return sum([index + z for index, value in enumerate(s) if value == '#'])
 
-for _ in (trange(int(20))):
+total_iterations = 50000000000
+
+iterations = 1000
+
+values = [0]
+last_value = 0
+for _ in (range(int(iterations))):
     state, z_diff = next_state(state)
     zero_location += z_diff
+    current_value = get_value(state, zero_location)
+    values.append(current_value - last_value)
+    last_value = current_value
 
-v = [index + zero_location for index, value in enumerate(state) if value == '#']
+last_value = sum(values[-100:]) // len(values[-100:])
 
-# print(v, zero_location)
-print("\n\n\n", sum(v))
+print(last_value)
+print("\n\n\n",sum(values) + (total_iterations-iterations) * last_value)
