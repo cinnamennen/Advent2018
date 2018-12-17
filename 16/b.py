@@ -2,7 +2,7 @@ import pprint
 import re
 from typing import List
 
-from tqdm import trange
+from tqdm import trange, tqdm
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -34,7 +34,7 @@ def get_input():
             break
     instructions += data
 
-    return training, instructions
+    return training, [list(map(int, re.findall(r"\d+", i))) for i in instructions]
 
 
 def command(input_registers: List[int], op: str, a: int, b: int, c: int) -> List[int]:
@@ -143,7 +143,7 @@ def command(input_registers: List[int], op: str, a: int, b: int, c: int) -> List
 
 
 def main():
-    ops = ['addr',
+    ops = {'addr',
            'addi',
            'mulr',
            'muli',
@@ -159,23 +159,34 @@ def main():
            'eqir',
            'eqri',
            'eqrr',
-           ]
+           }
     possibilities = {k: ops.copy() for k in range(16)}
     training, instructions = get_input()
-    ambig = 0
 
     for before, instruction, after in training:
-        could_be = set(ops.copy())
         o, a, b, c = instruction
         to_remove = set()
         for possible_op in possibilities[o]:
             theoretical_result = command(before, possible_op, a, b, c)
             if theoretical_result != after:
                 to_remove.add(possible_op)
-        could_be -= to_remove
-        if len(could_be) >= 3:
-            ambig += 1
-    print(ambig)
+        possibilities[o] -= to_remove
+    new_possibilities = {k: list(v)[0] for k, v in possibilities.items() if len(v) == 1}
+    possibilities.update(new_possibilities)
+    while len([k for k, v in possibilities.items() if isinstance(v, str)]) != 16:
+        known = {v for v in possibilities.values() if isinstance(v, str)}
+        for k in possibilities.keys():
+            if isinstance(possibilities[k], str):
+                continue
+            possibilities[k] -= known
+        new_possibilities = {k: list(v)[0] for k, v in possibilities.items() if len(v) == 1}
+        possibilities.update(new_possibilities)
+    # pp.pprint(instructions)
+
+    registers = [0, 0, 0, 0]
+    for op, a, b, c in tqdm(instructions):
+        registers = command(registers, possibilities[op], a, b, c)
+    print(registers[0])
 
 
 if __name__ == '__main__':
