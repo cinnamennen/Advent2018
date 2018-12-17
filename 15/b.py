@@ -1,4 +1,5 @@
 import collections
+import itertools
 import pprint
 from typing import NamedTuple
 
@@ -132,13 +133,19 @@ def process_input():
 
 def get_input():
     data = process_input()
-    data = Grid(data)
     return data
 
 
 def main():
     data = get_input()
-    print(data.play())
+    for power in itertools.count(4):
+        try:
+            outcome = Grid(data, power).play(elf_death=True)
+        except ElfDied:
+            continue
+        else:
+            print(outcome)
+            break
 
 
 if __name__ == '__main__':
