@@ -178,7 +178,7 @@ def main():
         grid = grid[1:]
     # print_grid(grid, flowing)
     counts = Counter(flatten(grid))
-    print(counts[Cell.flow.value] + counts[Cell.water.value])
+    print(counts[Cell.water.value])
 
 
 if __name__ == '__main__':
