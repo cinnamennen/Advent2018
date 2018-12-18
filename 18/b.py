@@ -80,8 +80,8 @@ def main():
     next_data = None
     # print_grid(data)
     seen = deque(maxlen=1000)
-    # total = 1000000000
-    total = 10
+    total = 1000000000
+    # total = 10
     i = total
     with tqdm(total=i) as t:
         while i > 0:
