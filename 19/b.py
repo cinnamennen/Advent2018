@@ -17,7 +17,7 @@ def get_input():
     data = process_input()
     ip = int(data.pop(0).split(' ')[-1])
     data = [d.split(' ') for d in data]
-    data = tuple([tuple([int(x) if len(x) !=4 else x for x in d]) for d in data])
+    data = tuple([tuple([int(x) if len(x) != 4 else x for x in d]) for d in data])
 
     return ip, data
 
@@ -130,16 +130,57 @@ def command(input_registers: List[int], op: str, a: int, b: int, c: int) -> List
 def main():
     iaddr, instructions = get_input()
     registers = [0 for _ in range(6)]
-    # registers[iaddr] = 1
+    registers[0] = 1
     run(instructions, registers, iaddr)
+
+
+p = [
+    'i += 16',
+    'B = 1',
+    'D = 1',
+    'C = B * D',
+    'C = C == E',
+    'i += C',
+    'i += 1',
+    'A += B',
+    'D += 1',
+    'C = D > E',
+    'i += C',
+    'i = 2',
+    'B += 1',
+    'C = B > E',
+    'i += C',
+    'i = 1',
+    'i *= i',
+    'E += 2',
+    'E *= E',
+    'E *= i',
+    'E *= 11',
+    'C += 5',
+    'C *= i',
+    'C += 4',
+    'E += C',
+    'i += A',
+    'i = 0',
+    'C = i',
+    'C *= i',
+    'C += C',
+    'C *= C',
+    'C *= 14',
+    'C *= i',
+    'E += C',
+    'A = 0',
+    'i = 0'
+]
 
 
 def run(instructions, registers, iaddr):
     ip = registers[iaddr]
-    while 0 <= ip < len(instructions):
+    for _ in range(60):
         registers[iaddr] = ip
         instruction = instructions[ip]
         registers = command(registers, *instruction)
+        print(ip, p[ip], ' ', end='')
         ip = registers[iaddr]
         ip += 1
         # if registers[5] > 40000:
