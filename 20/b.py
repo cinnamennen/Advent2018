@@ -84,8 +84,9 @@ def get_input():
 def main():
     data = get_input()
     data = [nx.algorithms.shortest_path_length(d, Point(0, 0)) for d in data]
-    data = [max(d.values()) for d in data]
-
+    data = data[0]
+    data = [length for length in data.values() if length >= 1000]
+    data = len(data)
     # for G in data:
     #     pos = nx.spring_layout(G, iterations=100)
     #     plt.subplot(221)
