@@ -1,12 +1,16 @@
 import enum
+import operator
 import pprint
 import re
+from copy import copy
 from dataclasses import dataclass
+from typing import Any
 
 from cinnamon_tools.memoized import Memoized
-from cinnamon_tools.point import Point
+from cinnamon_tools.point import Point, directions
 from tqdm import trange
 import networkx as nx
+from datetime import timedelta
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -40,12 +44,60 @@ class Terrain(enum.Enum):
 
 
 class Tool(enum.Enum):
-    pass
+    torch = enum.auto()
+    climbing = enum.auto()
+    neither = enum.auto()
+
+    def __str__(self):
+        return self._name_
+
+    def is_viable(self, terrain: Terrain):
+        if terrain == Terrain.rocky:
+            return self != Tool.neither
+        elif terrain == Terrain.wet:
+            return self != Tool.torch
+        elif terrain == Terrain.narrow:
+            return self != Tool.climbing
+        else:
+            raise AttributeError
 
 
-@dataclass
+@dataclass()
 class Explorer:
-    pass
+    position: Point
+    tool: Tool
+    time: timedelta
+    target: Point
+    depth: int
+
+    def is_valid(self):
+        return 0 <= self.position.x < self.target.x + 50 and 0 <= self.position.y < self.target.y + 50 and self.tool.is_viable(
+            get_terrain(self.position, self.target, self.depth))
+
+    def __repr__(self):
+        return f"{self.position} - {self.tool}"
+
+    def __eq__(self, other):
+        return self.position == other.position and self.tool == other.tool
+
+    def move(self, p: Point):
+        obj = copy(self)
+        obj.position += p
+        obj.time += timedelta(minutes=1)
+        return obj
+
+    def equip(self, tool: Tool):
+        obj = copy(self)
+        obj.tool = tool
+        obj.time += timedelta(minutes=7)
+        return obj
+
+    def sprawl(self):
+        options = [self.move(d) for d in directions.values()] + [self.equip(t) for t in Tool]
+        return [o for o in options if o.is_valid()]
+
+    def __hash__(self):
+        return (hash(repr(self)))
 
 
 @Memoized
@@ -78,10 +130,29 @@ def get_risk(target: Point, depth: int) -> int:
     return t
 
 
+def iterate(traverse, visited):
+    traverse.sort(key=operator.attrgetter('time'), reverse=True)
+    new_places = [e.sprawl() for e in traverse]
+    visited |= set(traverse)
+    new_places = [n for sublist in new_places for n in sublist if n not in visited]
+    traverse = new_places
+    return traverse, visited
+
+
 def main():
     depth, a, b = get_input()
     target = Point(a, b)
-    print(get_risk(target, depth))
+    o = Explorer(Point(0, 0), Tool.torch, timedelta(minutes=0), target, depth)
+    fake = Explorer(target, Tool.torch, timedelta(minutes=-1), target, depth)
+    visited = set()
+    traverse = [o]
+
+    traverse, visited = iterate(traverse, visited)
+    while fake not in visited or min([d.time.seconds for d in traverse]) >= timedelta(minutes=50).seconds:
+        print(min([d.time.seconds//60 for d in traverse]))
+        traverse, visited = iterate(traverse, visited)
+        # break
+    print(traverse)
 
 
 if __name__ == '__main__':
