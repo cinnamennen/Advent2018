@@ -1,10 +1,12 @@
 import enum
 import pprint
 import re
+from dataclasses import dataclass
 
 from cinnamon_tools.memoized import Memoized
 from cinnamon_tools.point import Point
 from tqdm import trange
+import networkx as nx
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -35,6 +37,15 @@ class Terrain(enum.Enum):
              'narrow': '|'}
 
         return r[self._name_]
+
+
+class Tool(enum.Enum):
+    pass
+
+
+@dataclass
+class Explorer:
+    pass
 
 
 @Memoized
