@@ -4,8 +4,9 @@ import pprint
 import re
 from copy import copy
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, List
 
+import numpy as np
 from cinnamon_tools.memoized import Memoized
 from cinnamon_tools.point import Point, directions
 from tqdm import trange
@@ -38,9 +39,17 @@ class Terrain(enum.Enum):
     def __str__(self):
         r = {'rocky': '.',
              'wet': '=',
-             'narrow': '|'}
+             'narrow': '|'
+             }
 
         return r[self._name_]
+
+    def valid_tools(self):
+        t = {'rocky': [Tool.torch, Tool.climbing],
+             'wet': [Tool.climbing, Tool.neither],
+             'narrow': [Tool.torch, Tool.neither]
+             }
+        return t[self._name_]
 
 
 class Tool(enum.Enum):
@@ -60,44 +69,6 @@ class Tool(enum.Enum):
             return self != Tool.climbing
         else:
             raise AttributeError
-
-
-@dataclass()
-class Explorer:
-    position: Point
-    tool: Tool
-    time: timedelta
-    target: Point
-    depth: int
-
-    def is_valid(self):
-        return 0 <= self.position.x < self.target.x + 50 and 0 <= self.position.y < self.target.y + 50 and self.tool.is_viable(
-            get_terrain(self.position, self.target, self.depth))
-
-    def __repr__(self):
-        return f"{self.position} - {self.tool}"
-
-    def __eq__(self, other):
-        return self.position == other.position and self.tool == other.tool
-
-    def move(self, p: Point):
-        obj = copy(self)
-        obj.position += p
-        obj.time += timedelta(minutes=1)
-        return obj
-
-    def equip(self, tool: Tool):
-        obj = copy(self)
-        obj.tool = tool
-        obj.time += timedelta(minutes=7)
-        return obj
-
-    def sprawl(self):
-        options = [self.move(d) for d in directions.values()] + [self.equip(t) for t in Tool]
-        return [o for o in options if o.is_valid()]
-
-    def __hash__(self):
-        return (hash(repr(self)))
 
 
 @Memoized
@@ -124,14 +95,19 @@ def get_terrain(p: Point, target: Point, depth: int) -> Terrain:
     return Terrain(get_ero(p, target, depth) % 3)
 
 
-def get_risk(target: Point, depth: int) -> int:
-    t = [[get_terrain(Point(x, y), target, depth) for x in range(target.x + 1)] for y in range(target.y + 1)]
-    t = sum([sum([x.value for x in y]) for y in t])
+def get_risk(target: Point, depth: int) -> List[List[Terrain]]:
+    padding = 1 + 10
+    t = [[
+        get_terrain(Point(x, y), target, depth)
+        for x in range(target.x + padding)]
+        for y in range(target.y + padding)]
+    # t = sum([sum([x.value for x in y]) for y in t])
     return t
 
 
 def iterate(traverse, visited):
-    traverse.sort(key=operator.attrgetter('time'), reverse=True)
+    traverse.sort(key=operator.attrgetter('time'), reverse=False)
+    print(traverse[0].time, traverse[-1].time)
     new_places = [e.sprawl() for e in traverse]
     visited |= set(traverse)
     new_places = [n for sublist in new_places for n in sublist if n not in visited]
@@ -142,17 +118,22 @@ def iterate(traverse, visited):
 def main():
     depth, a, b = get_input()
     target = Point(a, b)
-    o = Explorer(Point(0, 0), Tool.torch, timedelta(minutes=0), target, depth)
-    fake = Explorer(target, Tool.torch, timedelta(minutes=-1), target, depth)
-    visited = set()
-    traverse = [o]
+    # m = get_risk(target, depth)
+    cave = nx.Graph()
+    value: Terrain
+    for x in range(0, target.x + 1 + 100):
+        for y in range(0, target.y + 1 + 100):
+            value = get_terrain(Point(x, y), target, depth)
+            tools = value.valid_tools()
+            cave.add_edge((x, y, tools[0]), (x, y, tools[1]), weight=7)
+            movement = [Point(x, y) + d for d in directions.values()]
+            movement = [p for p in movement if 0 <= p.x < target.x + 100 and 0 <= p.y < target.y + 100]
+            for p in movement:
+                new_tools = get_terrain(p, target, depth).valid_tools()
+                for tool in set(tools).intersection(set(new_tools)):
+                    cave.add_edge((x, y, tool), (*p, tool), weight=1)
 
-    traverse, visited = iterate(traverse, visited)
-    while fake not in visited or min([d.time.seconds for d in traverse]) >= timedelta(minutes=50).seconds:
-        print(min([d.time.seconds//60 for d in traverse]))
-        traverse, visited = iterate(traverse, visited)
-        # break
-    print(traverse)
+    print(nx.dijkstra_path_length(cave, (0, 0, Tool.torch), (*target, Tool.torch)))
 
 
 if __name__ == '__main__':
